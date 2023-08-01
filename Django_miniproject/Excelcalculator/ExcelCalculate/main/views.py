@@ -1,4 +1,6 @@
+# -*- coding:utf-8 -*-
 from django.shortcuts import render, redirect
+
 
 # Create your views here.
 def index(request):
@@ -6,6 +8,18 @@ def index(request):
 
 def signup(request):
     return render(request, "main/signup.html")
+
+def join(request):
+    print("테스트", request)
+    name = request.POST.get('signupName')
+    email = request.POST.get('signupEmail')
+    pw = request.POST.get('signupPW')
+    print("테스트2", request)
+    user = User(user_name = name, user_email = email, user_password = pw)
+    user.save()
+    print("사용자 정보 저장 완료됨!")
+    
+    return redirect("main_verifyCode")
 
 def signin(request):
     return render(request, "main/signin.html")

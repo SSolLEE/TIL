@@ -1,6 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 import pandas as pd
+from .models import *
 
 # Create your views here.
 def calculate(request):
@@ -37,10 +38,8 @@ def calculate(request):
 
     # 결과 출력
     grade_list = list(grade_calculate_dic.keys())
-    # print("")
-    # print(grade_list)
     grade_list.sort()
-    # print(grade_list)
+    
     for key in grade_list:
         print("# grade: ", key)
         print("min:", grade_calculate_dic[key]['min'], end="")
@@ -57,8 +56,40 @@ def calculate(request):
         else:
             email_domain_dic[email_domain] += 1 # 기존 도메인이 또 나타나면 +1 추가
             
-        print("## Email 도메인 별 사용 인원")
-        # for key in email_domain_dic.keys():
-            # print("#", key, ":", email_domain_dic[key], "명")
+    print("## Email 도메인 별 사용 인원")
+    for key in email_domain_dic.keys():
+            print("#", key, ":", email_domain_dic[key], "명")
 
-    return HttpResponse("calculate, calculate function!")
+    # 과제 위 코드가 맘에 안듬 ---> pandas 문법으로 변환해서 2개 Tasks를 완료
+    grade_df = df.groupby('grade')['value'].agg(['min', 'max', 'mean']).reset_index()
+    print(grade_df)
+    
+    # grade_df = df.groupby('grade')['value'].agg(["min", "max", "mean"]).reset_index().rename(columns = {"mean" : "avg"})
+    # print(grade_df)
+    # print("")
+    grade_df = grade_df.style.hide(axis='index').set_table_attributes('class="table table-dark"')
+    grade_calculate_dic_pd_to_session = {'grade_df' : grade_df.to_html(justify="center")}
+    request.session['grade_calculatSe_pd_dic'] = grade_calculate_dic_pd_to_session
+
+    # 이메일 주소 도메인별 인원 구하기
+    df['domain'] = df['email'].apply(lambda x : x.split("@")[1])
+    email_df = df.groupby('domain')['value'].agg("count").sort_values(ascending=False).reset_index()
+    print(email_df)
+
+    email_calculate_pd_to_session = {'email_df' : email_df.to_html(justify='center')}
+    request.session['email_calculate_pd_dic'] = email_calculate_pd_to_session
+
+    # pandas django데이터 타입이 조금 다름
+    grade_calculate_dic_to_session = {}
+    for key in grade_list:
+        grade_calculate_dic_to_session[int(key)] = {}
+        grade_calculate_dic_to_session[int(key)]['max'] = int(grade_calculate_dic[key]['max']) # float 자료형으로 변환
+        grade_calculate_dic_to_session[int(key)]['avg'] = float(grade_calculate_dic[key]['avg']) # float 자료형으로 변환
+        grade_calculate_dic_to_session[int(key)]['min'] = int(grade_calculate_dic[key]['min']) # float 자료형으로 변환
+    
+    request.session['grade_calculate_dic'] = grade_calculate_dic_to_session
+    request.session['email_domain_dic'] = email_domain_dic
+
+
+    #return HttpResponse("calculate, calculate function!")
+    return redirect("/result")

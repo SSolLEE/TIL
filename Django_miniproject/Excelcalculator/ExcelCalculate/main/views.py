@@ -7,9 +7,9 @@ from sendEmail.views import *
 # Create your views here.
 def index(request):
     if 'user_name' in request.session.keys():
-        return render(request, "main/index.html")
+        return render(request, 'main/index.html')
     else:
-        return redirect("main_signin")
+        return redirect('main_signin')
 
 def signup(request):
     return render(request, "main/signup.html")
@@ -47,17 +47,21 @@ def signin(request):
     return render(request, "main/signin.html")
 
 def login(request):
-    # 로그인된 user만 이용할 수 있도록 구현
-    # 로그인 user 판단을 위해 세션 사용(verify함수)
-    # 세션 처리 진행
     loginEmail = request.POST['loginEmail']
     loginPW = request.POST['loginPW']
-    user = User.objects.get(user_email = loginEmail)
-    if user.user_password ==loginPW:
-        request.session['user_name'] = user.user_name # user가 회원가입 시 입력한 정보
-        request.session['user_email'] = user.user_email # user가 회원가입 시 입력한 정보
-        return HttpResponse("test")
+    try:
+        user = User.objects.get(user_email = loginEmail)
+    except: 
+        return redirect('main_loginFail')
+    if user.user_password == loginPW:
+        request.session['user_name'] = user.user_name
+        request.session['user_email'] = user.user_email
+        return redirect('main_index')
+    else:
+        return redirect('main_loginFail')
     
+def loginFail(request):
+    return render(request, 'main/loginFail.html')
 
 def verifyCode(request):
     return render(request, "main/verifyCode.html")
@@ -87,12 +91,26 @@ def verify(request):
         request.session['user_email'] = user.user_email # 로그인화면 구현
         
         return response
+    else:
+        return redirect('main_verifyCode')
 
-    return redirect('main_index')
+    # return redirect('main_index')
 
 def result(request):
     if 'user_name' in request.session.keys():
-        return render(request, "main/result.html")
+        content = {}
+        # 새로운 객체에 저장
+        content['grade_calculate_dic'] = request.session['grade_calculate_dic']
+        content['email_domain_dic'] = request.session['email_domain_dic']
+        content['grade_calculate_pd_dic'] = request.session['grade_calculate_pd_dic']
+
+        print("grade_calculate_pd_dic")
+        
+        # 기존 세션 삭제
+        del request.session['grade_calculate_dic']
+        del request.session['email_domain_dic']
+
+        return render(request, "main/result.html", content)
     else:
         return redirect("main_signin")
     # return render(request, "main/result.html")
